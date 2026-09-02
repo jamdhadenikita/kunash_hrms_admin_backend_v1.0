@@ -25,31 +25,20 @@ public class LeaveRuleServiceImpl implements LeaveRuleService {
     @Autowired
     private CompanyRepository companyRepository;
 
-
-    private static final List<String> VALID_EMP_TYPES =
-            List.of("Full-Time", "Part-Time", "Contract", "Intern");
-
-//    private static final List<String> VALID_DEPARTMENTS = List.of(
-//            "All", "IT", "HR", "Sales", "Finance", "Operations", "Marketing");
-
     // ─────────────────────────────────────────────────────────────────
     // GET ALL RULES GROUPED by (empType, dept)
     // Returns: [ { empType, dept, allotments: { "Casual Leave": 12 } } ]
     // Same shape as UI's S.rules[] array.
-    // Sorted: Regular → Intern → Contract
+    // Sorted alphabetically by employeeType — no fixed/hardcoded order,
+    // since employee types are no longer restricted to a static list.
     // ─────────────────────────────────────────────────────────────────
     @Override
     public List<Map<String, Object>> getAllRulesGrouped() {
 
         List<LeaveRuleEntity> allRules = leaveRuleRepository.findAll();
 
-//        allRules.sort(Comparator.comparingInt(r -> VALID_EMP_TYPES.indexOf(r.getEmployeeType())));
-
-
-        allRules.sort(Comparator.comparingInt(r -> {
-            int i = VALID_EMP_TYPES.indexOf(r.getEmployeeType());
-            return i == -1 ? Integer.MAX_VALUE : i;
-        }));
+        allRules.sort(Comparator.comparing(
+                r -> r.getEmployeeType() == null ? "" : r.getEmployeeType()));
 
         Map<String, Map<String, Integer>> grouped = new LinkedHashMap<>();
         for (LeaveRuleEntity r : allRules) {
@@ -70,9 +59,10 @@ public class LeaveRuleServiceImpl implements LeaveRuleService {
         return result;
     }
 
-    // ADD this method anywhere inside LeaveRuleServiceImpl —
-// after deleteRule() is a clean spot
-
+    // ─────────────────────────────────────────────────────────────────
+    // Dynamic department list — pulls distinct department names from
+    // the company's departments JSON, so it's never a hardcoded list.
+    // ─────────────────────────────────────────────────────────────────
     private List<String> getValidDepartments() {
         List<String> result = new ArrayList<>();
         result.add("All");
@@ -99,12 +89,30 @@ public class LeaveRuleServiceImpl implements LeaveRuleService {
         }
         return result;
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // "Regular" (legacy value already present on existing employee
+    // records) and "Full-Time" (the standard label used in the UI going
+    // forward) refer to the same employment category for leave purposes.
+    // This is a one-off data-label alias, not a policy number — it just
+    // prevents existing "Regular" employees from silently showing 0
+    // balance once new rules start being created under "Full-Time".
+    // ─────────────────────────────────────────────────────────────────
+    private String normalizeEmpTypeSynonym(String employeeType) {
+        if ("Regular".equalsIgnoreCase(employeeType)) return "Full-Time";
+        if ("Full-Time".equalsIgnoreCase(employeeType)) return "Regular";
+        return null; // no known synonym
+    }
+
     // ─────────────────────────────────────────────────────────────────
     // SAVE / UPSERT RULE
     //
     // Rules:
-    //  1. employeeType must be Regular | Intern | Contract
-    //  2. department must be a valid value
+    //  1. employeeType just needs to be non-blank — no hardcoded/fixed
+    //     list restriction. The UI dropdown already constrains input to
+    //     Full-Time / Part-Time / Contract / Intern; the backend doesn't
+    //     duplicate that as a rigid enum, so it never goes stale.
+    //  2. department must be a valid value (dynamic, from Company data).
     //  3. allotments cannot be null or empty
     //  4. Each day value must be >= 0
     //  5. Loops all active leave types — upserts each row.
@@ -114,16 +122,10 @@ public class LeaveRuleServiceImpl implements LeaveRuleService {
     @Transactional
     public void saveRule(String employeeType, String department, Map<String, Integer> allotments) {
 
-//        if (!VALID_EMP_TYPES.contains(employeeType)) {
-//            throw new RuntimeException("Invalid employeeType: '" + employeeType + "'. Must be one of: " + VALID_EMP_TYPES);
-//        }
-//        if (!VALID_DEPARTMENTS.contains(department)) {
-//            throw new RuntimeException("Invalid department: '" + department + "'. Must be one of: " + VALID_DEPARTMENTS);
-//        }
-
-        if (!VALID_EMP_TYPES.contains(employeeType)) {
-            throw new RuntimeException("Invalid employeeType: '" + employeeType + "'. Must be one of: " + VALID_EMP_TYPES);
+        if (employeeType == null || employeeType.isBlank()) {
+            throw new RuntimeException("employeeType is required.");
         }
+
         List<String> validDepts = getValidDepartments();
         if (!validDepts.contains(department)) {
             throw new RuntimeException("Invalid department: '" + department + "'. Must be one of: " + validDepts);
@@ -180,7 +182,8 @@ public class LeaveRuleServiceImpl implements LeaveRuleService {
 
     // ─────────────────────────────────────────────────────────────────
     // GET ALLOTTED DAYS for one (empType, dept, leaveType)
-    // Logic: Try specific dept first → fallback to "All"
+    // Logic: Try specific dept first → fallback to "All" → then retry
+    // both with the Regular/Full-Time synonym before giving up.
     // ─────────────────────────────────────────────────────────────────
     @Override
     public int getAllottedDays(String employeeType, String department, String leaveType) {
@@ -195,11 +198,24 @@ public class LeaveRuleServiceImpl implements LeaveRuleService {
                 .findByEmployeeTypeAndDepartmentAndLeaveTypeName(employeeType, "All", leaveType);
         if (fallback.isPresent()) return fallback.get().getDaysAllotted();
 
-        // ADD: 3. Log when nothing found — helps debug
+        // 3. Retry with the Regular <-> Full-Time synonym before giving
+        // up, so existing "Regular" employees still match rules created
+        // under "Full-Time" (and vice versa).
+        String synonym = normalizeEmpTypeSynonym(employeeType);
+        if (synonym != null) {
+            Optional<LeaveRuleEntity> synonymSpecific = leaveRuleRepository
+                    .findByEmployeeTypeAndDepartmentAndLeaveTypeName(synonym, department, leaveType);
+            if (synonymSpecific.isPresent()) return synonymSpecific.get().getDaysAllotted();
+
+            Optional<LeaveRuleEntity> synonymFallback = leaveRuleRepository
+                    .findByEmployeeTypeAndDepartmentAndLeaveTypeName(synonym, "All", leaveType);
+            if (synonymFallback.isPresent()) return synonymFallback.get().getDaysAllotted();
+        }
+
+        // 4. Log when nothing found — helps debug
         System.out.println("[RULE MISS] No rule for empType=" + employeeType
                 + " dept=" + department + " leaveType=" + leaveType);
         return 0;
     }
-
 
 }

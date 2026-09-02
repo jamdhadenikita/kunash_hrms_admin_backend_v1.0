@@ -34,4 +34,8 @@ public interface OnboardingRepository extends JpaRepository<OnboardingEntity, Lo
     // Count pending onboardings for stats badge
     @Query("SELECT COUNT(o) FROM OnboardingEntity o WHERE UPPER(o.status) NOT IN ('COMPLETED', 'CANCELLED')")
     long countPendingOnboardings();
+
+    @Query("SELECT AVG(DATEDIFF(o.onboardingCompletedDate, o.createdAt)) FROM OnboardingEntity o " +
+            "WHERE o.onboardingCompletedDate IS NOT NULL")
+    Double getAvgOnboardingCompletionDays();
 }

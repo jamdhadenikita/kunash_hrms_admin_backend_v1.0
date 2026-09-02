@@ -340,6 +340,4 @@ public class AssetController {
         response.put("data", assets.getContent());
         return ResponseEntity.ok(response);
     }
-
-
 }

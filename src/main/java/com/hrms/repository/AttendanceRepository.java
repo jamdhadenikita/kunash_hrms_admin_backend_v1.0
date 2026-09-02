@@ -98,4 +98,15 @@ public interface AttendanceRepository extends JpaRepository<AttendanceEntity, Lo
     long countByAttendanceDateAndStatusIgnoreCase(LocalDate attendanceDate, String status);
 
     List<AttendanceEntity> findByAttendanceDateAndCheckOutTimeIsNull(LocalDate attendanceDate);
+
+    @Query("SELECT COUNT(a) FROM AttendanceEntity a WHERE a.attendanceDate BETWEEN :from AND :to " +
+            "AND UPPER(a.status) = 'PRESENT'")
+    long countPresentInRange(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT COUNT(a) FROM AttendanceEntity a WHERE a.attendanceDate BETWEEN :from AND :to")
+    long countTotalInRange(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT COUNT(a) FROM AttendanceEntity a WHERE a.attendanceDate BETWEEN :from AND :to " +
+            "AND UPPER(a.status) = 'WFH'")
+    long countWfhInRange(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

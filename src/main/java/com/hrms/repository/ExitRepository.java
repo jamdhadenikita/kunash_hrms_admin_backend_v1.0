@@ -115,4 +115,18 @@ public interface ExitRepository extends JpaRepository<ExitEntity, Long> {
 
     @Query("SELECT MONTH(e.createdAt), COUNT(e) FROM ExitEntity e WHERE YEAR(e.createdAt) = YEAR(CURRENT_DATE) GROUP BY MONTH(e.createdAt)")
     List<Object[]> getMonthlyExitCount();
+
+    @Query("""
+    SELECT AVG(DATEDIFF(e.createdAt, emp.joiningDate))
+    FROM ExitEntity e JOIN e.employee emp
+    WHERE e.status = 'COMPLETED' AND YEAR(e.createdAt) = :year
+    """)
+    Double getAvgTenureAtExitDays(@Param("year") int year);
+
+
+    @Query("SELECT e.reasonForLeaving, COUNT(e) FROM ExitEntity e " +
+            "WHERE e.reasonForLeaving IS NOT NULL AND YEAR(e.resignationDate) = :year " +
+            "GROUP BY e.reasonForLeaving")
+    List<Object[]> getReasonWiseExitCount(@Param("year") int year);
+
 }

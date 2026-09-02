@@ -16,7 +16,7 @@ public class HrmsSystemApplication {
 		// Load .env file (if present)
 		Dotenv dotenv = Dotenv.configure()
 				.directory("./") // Look in root folder
-				.ignoreIfMissing() // Avoid errors if .env is missing (e.g., in production)
+				.ignoreIfMissing()    // Avoid errors if .env is missing (e.g., in production)
 				.load();
 
 		// Set system properties from .env

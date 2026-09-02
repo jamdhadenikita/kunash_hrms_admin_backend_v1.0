@@ -77,6 +77,12 @@ public interface AssetRepository extends JpaRepository<AssetEntity, Long> {
     ORDER BY a.maintenanceDate DESC
     """)
     List<AssetEntity> findRecentMaintenanceRecords(@Param("since") LocalDate since);
+
+    @Query("SELECT COUNT(a) FROM AssetEntity a WHERE a.status = 'ASSIGNED' " +
+            "AND a.expectedReturnDate < :today AND a.actualReturnDate IS NULL")
+    long countOverdueReturns(@Param("today") LocalDate today);
+
+
 }
 
 

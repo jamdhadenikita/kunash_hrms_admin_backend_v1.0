@@ -185,4 +185,13 @@ public interface PayrollRepository extends JpaRepository<PayrollEntity, Long> {
             PayrollStatus status
     );
 
+    @Query("""
+    SELECT e.department, COALESCE(SUM(p.netSalary), 0.0), COALESCE(SUM(p.ctc), 0.0)
+    FROM PayrollEntity p JOIN p.employee e
+    WHERE p.payrollMonth = :month AND p.payrollYear = :year
+      AND p.status NOT IN ('CANCELLED','FAILED')
+    GROUP BY e.department
+    """)
+    List<Object[]> getDeptWiseCostAndCtc(@Param("month") PayrollMonth month, @Param("year") Integer year);
+
 }

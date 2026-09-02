@@ -94,4 +94,10 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequestEntity
 
     // Count all pending leaves (for stats badge)
     long countByStatus(String status);
+
+
+    @Query("SELECT r.leaveType, COUNT(r) FROM LeaveRequestEntity r " +
+            "WHERE r.status = 'approved' AND r.actionDate BETWEEN :from AND :to " +
+            "GROUP BY r.leaveType")
+    List<Object[]> countApprovedByLeaveTypeInRange(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

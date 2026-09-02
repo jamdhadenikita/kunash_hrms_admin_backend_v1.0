@@ -239,11 +239,6 @@ public class PayrollServiceImpl implements PayrollService {
                 || dto.getEmployeePf() != null
                 || dto.getEmployerPf() != null;
 
-        // Only enforce mutable check when earnings are being changed
-        if (earningsChanged) {
-            assertMutable(entity);
-        }
-
         // Validate status transition if status is being changed
         if (dto.getStatus() != null) {
             validateStatusTransition(entity.getStatus(), dto.getStatus());
@@ -267,6 +262,13 @@ public class PayrollServiceImpl implements PayrollService {
             applyEarningsAndDeductions(entity, basicPayAnchor, employeePf, employerPf);
         }
 
+        // Direct field overrides — attendance & expense figures.
+        if (dto.getWorkingDaysInMonth() != null) entity.setWorkingDaysInMonth(dto.getWorkingDaysInMonth());
+        if (dto.getDaysWorked() != null) entity.setDaysWorked(dto.getDaysWorked());
+        if (dto.getLopDays() != null) entity.setLopDays(dto.getLopDays());
+        if (dto.getLopDeduction() != null) entity.setLopDeduction(dto.getLopDeduction());
+        if (dto.getExpenseReimbursement() != null) entity.setExpenseReimbursement(dto.getExpenseReimbursement());
+
         if (dto.getRemarks() != null) {
             entity.setRemarks(dto.getRemarks());
         }
@@ -274,6 +276,7 @@ public class PayrollServiceImpl implements PayrollService {
         PayrollEntity saved = payrollRepository.save(entity);
         log.info("[Payroll] Patch complete → payrollId={}", payrollId);
         return toResponseDTO(saved);
+
     }
 
     // ─────────────────────────────────────────────────────────────────────

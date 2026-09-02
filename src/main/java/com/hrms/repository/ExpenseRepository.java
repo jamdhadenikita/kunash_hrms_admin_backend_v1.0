@@ -97,4 +97,8 @@ public interface ExpenseRepository extends JpaRepository<ExpenseEntity, Long> {
             @Param("month") Integer month,
             @Param("year") Integer year
     );
+
+    @Query("SELECT e.status, COALESCE(SUM(e.amount), 0) FROM ExpenseEntity e " +
+            "WHERE e.expenseDate BETWEEN :from AND :to GROUP BY e.status")
+    List<Object[]> sumAmountByStatusInRange(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

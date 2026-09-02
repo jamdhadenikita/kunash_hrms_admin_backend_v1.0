@@ -37,12 +37,24 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
     private EmployeeLeaveBalanceRepository leaveBalanceRepository;
 
-    public LeaveRequestServiceImpl(LeaveRequestRepository leaveRequestRepository, EmployeeRepository employeeRepository, LeaveTypeRepository leaveTypeRepository, LeaveRuleService leaveRuleService, EmployeeLeaveBalanceRepository leaveBalanceRepository) {
+    // NEW — needed to detect "earned/credited" leave types (like Comp Off)
+    // that must NOT be auto-resynced to the fixed yearly rule value.
+    // See getOrCreateBalanceRecord() below for why this matters.
+    private final com.hrms.service.LeavePolicyConfigService leavePolicyConfigService;
+
+    // NEW — lets approved leave consume carry-forward days FIRST (since
+    // they expire sooner than the fresh allotment), falling back to the
+    // fresh balance for whatever's left. See processAction() below.
+    private final com.hrms.service.LeaveCarryForwardService leaveCarryForwardService;
+
+    public LeaveRequestServiceImpl(LeaveRequestRepository leaveRequestRepository, EmployeeRepository employeeRepository, LeaveTypeRepository leaveTypeRepository, LeaveRuleService leaveRuleService, EmployeeLeaveBalanceRepository leaveBalanceRepository, com.hrms.service.LeavePolicyConfigService leavePolicyConfigService, com.hrms.service.LeaveCarryForwardService leaveCarryForwardService) {
         this.leaveRequestRepository = leaveRequestRepository;
         this.employeeRepository = employeeRepository;
         this.leaveTypeRepository = leaveTypeRepository;
         this.leaveRuleService = leaveRuleService;
         this.leaveBalanceRepository = leaveBalanceRepository;
+        this.leavePolicyConfigService = leavePolicyConfigService;
+        this.leaveCarryForwardService = leaveCarryForwardService;
     }
 
 
@@ -129,9 +141,6 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
         }
 
         // Rule 7 – balance check from DB (warn only, do not block)
-//        EmployeeLeaveBalanceEntity balanceRecord = getOrCreateBalanceRecord(
-//                empId, leaveType, fromDate.getYear(), resolvedType, resolvedDept);
-
         EmployeeLeaveBalanceEntity balanceRecord = getOrCreateBalanceRecord(
                 empId, leaveType, fromDate.getYear());
 
@@ -163,7 +172,12 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
             req.setActionDate(LocalDate.now());
             req.setRemarks(warningRemark != null ? warningRemark : "Added directly by admin.");
             // ✅ Balance table bhi update karo — admin directly approve kar raha hai
-            updateLeaveBalance(balanceRecord, numberOfDays);
+            // NEW — draw from carry-forward first (expires sooner), remainder from fresh balance
+            double remainderForFresh = leaveCarryForwardService.deductFromCarryForwardFirst(
+                    empId, leaveType, fromDate.getYear(), numberOfDays);
+            if (remainderForFresh > 0) {
+                updateLeaveBalance(balanceRecord, (int) Math.round(remainderForFresh));
+            }
         } else {
             req.setRemarks(warningRemark);
         }
@@ -291,18 +305,18 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
             throw new RuntimeException("Request is already '" + currentStatus + "'.");
         }
 
-//        EmployeeLeaveBalanceEntity balanceRecord = getOrCreateBalanceRecord(
-//                req.getEmpId(), req.getLeaveType(),
-//                req.getFromDate().getYear(),
-//                req.getEmpType(), req.getDepartment());
-
         EmployeeLeaveBalanceEntity balanceRecord = getOrCreateBalanceRecord(
                 req.getEmpId(), req.getLeaveType(),
                 req.getFromDate().getYear());
 
         if ("approved".equals(currentStatus) && "rejected".equals(newStatus)) {
             // Cancelling an approved leave -> give the days back
-            reverseLeaveBalance(balanceRecord, req.getNumberOfDays());
+            // NEW — restore to carry-forward first (up to whatever was drawn from it), remainder to fresh
+            double remainderForFresh = leaveCarryForwardService.restoreToCarryForward(
+                    req.getEmpId(), req.getLeaveType(), req.getFromDate().getYear(), req.getNumberOfDays());
+            if (remainderForFresh > 0) {
+                reverseLeaveBalance(balanceRecord, (int) Math.round(remainderForFresh));
+            }
         } else if (!"approved".equals(currentStatus) && isApprove) {
             // pending -> approved, or rejected -> approved -> deduct days
             if (balanceRecord.getRemaining() < req.getNumberOfDays()) {
@@ -311,7 +325,12 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 remarks = (remarks != null && !remarks.isBlank())
                         ? remarks + " " + warn : warn;
             }
-            updateLeaveBalance(balanceRecord, req.getNumberOfDays());
+            // NEW — draw from carry-forward first (expires sooner), remainder from fresh balance
+            double remainderForFresh = leaveCarryForwardService.deductFromCarryForwardFirst(
+                    req.getEmpId(), req.getLeaveType(), req.getFromDate().getYear(), req.getNumberOfDays());
+            if (remainderForFresh > 0) {
+                updateLeaveBalance(balanceRecord, (int) Math.round(remainderForFresh));
+            }
         }
         // pending -> rejected: no balance was ever deducted, nothing to adjust
 
@@ -351,9 +370,6 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
         int totalAllot = 0, totalUsed = 0;
 
         for (LeaveTypeEntity lt : applicableTypes) {
-//            EmployeeLeaveBalanceEntity b = getOrCreateBalanceRecord(
-//                    empId, lt.getName(), year, empType, dept);
-
             EmployeeLeaveBalanceEntity b = getOrCreateBalanceRecord(
                     empId, lt.getName(), year);
 
@@ -451,23 +467,6 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     // ─────────────────────────────────────────────────────────────────
     // HELPER 1 — enriched DTO banao (balance from DB)
     // ─────────────────────────────────────────────────────────────────
-//    private LeaveRequestResponseDTO buildEnrichedDTO(LeaveRequestEntity r, int year) {
-//
-////        EmployeeLeaveBalanceEntity b = getOrCreateBalanceRecord(
-////                r.getEmpId(), r.getLeaveType(), year,
-////                r.getEmpType(), r.getDepartment());
-//
-//
-//        EmployeeLeaveBalanceEntity b = getOrCreateBalanceRecord(
-//                r.getEmpId(), r.getLeaveType(), year);
-//
-//        LeaveRequestResponseDTO dto = LeaveRequestResponseDTO.from(r, b.getRemaining());
-//        dto.setBalanceAllotted(b.getAllotted());
-//        dto.setBalanceUsed(b.getUsed());
-//        dto.setLowBalance(b.getRemaining() < r.getNumberOfDays());
-//        return dto;
-//    }
-
     private LeaveRequestResponseDTO buildEnrichedDTO(LeaveRequestEntity r, int year) {
 
         EmployeeLeaveBalanceEntity b = getOrCreateBalanceRecord(
@@ -511,41 +510,15 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     // ✅ Maternity Leave ke liye: agar employee eligible nahi hai
     //    aur somehow yahan pahunch gaya (direct API call) toh
     //    0 allotted record return karo — block nahi karte history ke liye
+    //
+    // ✅ NEW: leave types that are earned/credited (e.g. Comp Off — where
+    //    LeavePolicyConfigEntity.compOffCreditDaysPerOccurrence > 0) are
+    //    NEVER resynced back to the fixed yearly rule value here. Their
+    //    balance is managed entirely by crediting (CompOffServiceImpl),
+    //    not by a fixed annual entitlement — Comp Off's rule allotment
+    //    is almost always 0, so resyncing to it would silently erase
+    //    every credited day the moment anyone views the balance.
     // ─────────────────────────────────────────────────────────────────
-//    private EmployeeLeaveBalanceEntity getOrCreateBalanceRecord(
-//            String empId, String leaveType, int year,
-//            String empType, String dept) {
-//
-//        return leaveBalanceRepository
-//                .findByEmpIdAndLeaveTypeAndYear(empId, leaveType, year)
-//                .orElseGet(() -> {
-//                    // Defensive: blank empType/dept from old data → safe fallback
-//                    String safeEmpType = (empType != null && !empType.isBlank())
-//                            ? empType.trim() : "Full-Time";
-//                    String safeDept    = (dept != null && !dept.isBlank())
-//                            ? dept.trim() : "All";
-//
-//                    boolean isMaternity = MATERNITY_LEAVE.equalsIgnoreCase(leaveType);
-//                    boolean applicable  = !isMaternity ||
-//                            leaveTypeRepository.findApplicableLeaveTypes(empId)
-//                                    .stream()
-//                                    .anyMatch(lt -> lt.getName().equalsIgnoreCase(leaveType));
-//
-//                    int allotted = applicable
-//                            ? leaveRuleService.getAllottedDays(safeEmpType, safeDept, leaveType)
-//                            : 0;
-//
-//                    EmployeeLeaveBalanceEntity b = new EmployeeLeaveBalanceEntity();
-//                    b.setEmpId(empId);
-//                    b.setLeaveType(leaveType);
-//                    b.setYear(year);
-//                    b.setAllotted(allotted);
-//                    b.setUsed(0);
-//                    b.setRemaining(allotted);
-//                    return leaveBalanceRepository.save(b);
-//                });
-//    }
-
     private EmployeeLeaveBalanceEntity getOrCreateBalanceRecord(
             String empId, String leaveType, int year) {
 
@@ -570,12 +543,19 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 ? leaveRuleService.getAllottedDays(safeEmpType, safeDept, leaveType)
                 : 0;
 
+        // Detect "earned/credited" leave types dynamically via policy
+        // config — nothing hardcoded like "Comp Off" as a literal string.
+        com.hrms.entity.LeavePolicyConfigEntity policy =
+                leavePolicyConfigService.resolve(leaveType, safeEmpType, safeDept);
+        boolean isEarnedType = policy.getCompOffCreditDaysPerOccurrence() != null
+                && policy.getCompOffCreditDaysPerOccurrence() > 0;
+
         Optional<EmployeeLeaveBalanceEntity> existing =
                 leaveBalanceRepository.findByEmpIdAndLeaveTypeAndYear(empId, leaveType, year);
 
         if (existing.isPresent()) {
             EmployeeLeaveBalanceEntity b = existing.get();
-            if (b.getAllotted() != currentRuleAllotment) {
+            if (!isEarnedType && b.getAllotted() != currentRuleAllotment) {
                 b.setAllotted(currentRuleAllotment);
                 b = leaveBalanceRepository.save(b);
             }
@@ -612,3 +592,4 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
         leaveBalanceRepository.save(balance);
     }
 }
+

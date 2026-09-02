@@ -11,12 +11,6 @@ public class PayrollPatchDTO {
     @Positive(message = "Basic salary must be a positive value.")
     private Double basicSalary;
 
-//    @Min(value = 0, message = "HRA cannot be negative.")
-//    private Double hra;
-//
-//    @Min(value = 0, message = "Allowances cannot be negative.")
-//    private Double allowances;
-
     // ── Deductions ────────────────────────────────────────────────────────
     @Min(value = 0, message = "Employee PF cannot be negative.")
     private Double employeePf;          // ← was: pf
@@ -24,11 +18,13 @@ public class PayrollPatchDTO {
     @Min(value = 0, message = "Employer PF cannot be negative.")
     private Double employerPf;
 
-//    @Min(value = 0, message = "ESI cannot be negative.")
-//    private Double esi;
-//
-//    @Min(value = 0, message = "TDS cannot be negative.")
-//    private Double tds;
+
+    // ── Attendance & Expense ─────────────────────────────────────────────
+    private Integer workingDaysInMonth;
+    private Integer daysWorked;
+    private Integer lopDays;
+    private Double lopDeduction;
+    private Double expenseReimbursement;
 
     // ── State & Notes ─────────────────────────────────────────────────────
     private PayrollStatus status;
@@ -40,12 +36,6 @@ public class PayrollPatchDTO {
     // ── Getters & Setters ─────────────────────────────────────────────────
     public Double getBasicSalary() { return basicSalary; }
     public void setBasicSalary(Double basicSalary) { this.basicSalary = basicSalary; }
-
-//    public Double getHra() { return hra; }
-//    public void setHra(Double hra) { this.hra = hra; }
-//
-//    public Double getAllowances() { return allowances; }
-//    public void setAllowances(Double allowances) { this.allowances = allowances; }
 
 
     public Double getEmployeePf() {
@@ -64,15 +54,26 @@ public class PayrollPatchDTO {
         this.employerPf = employerPf;
     }
 
-//    public Double getEsi() { return esi; }
-//    public void setEsi(Double esi) { this.esi = esi; }
-//
-//    public Double getTds() { return tds; }
-//    public void setTds(Double tds) { this.tds = tds; }
+
+    public Integer getWorkingDaysInMonth() { return workingDaysInMonth; }
+    public void setWorkingDaysInMonth(Integer workingDaysInMonth) { this.workingDaysInMonth = workingDaysInMonth; }
+
+    public Integer getDaysWorked() { return daysWorked; }
+    public void setDaysWorked(Integer daysWorked) { this.daysWorked = daysWorked; }
+
+    public Integer getLopDays() { return lopDays; }
+    public void setLopDays(Integer lopDays) { this.lopDays = lopDays; }
+
+    public Double getLopDeduction() { return lopDeduction; }
+    public void setLopDeduction(Double lopDeduction) { this.lopDeduction = lopDeduction; }
+
+    public Double getExpenseReimbursement() { return expenseReimbursement; }
+    public void setExpenseReimbursement(Double expenseReimbursement) { this.expenseReimbursement = expenseReimbursement; }
 
     public PayrollStatus getStatus() { return status; }
     public void setStatus(PayrollStatus status) { this.status = status; }
 
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
+
 }
