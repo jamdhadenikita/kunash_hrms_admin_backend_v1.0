@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,6 +42,13 @@ public class AdminServiceImpl implements AdminService {
         if (dto.getAdminRole() == null || dto.getAdminRole().trim().isEmpty()) {
             throw new IllegalArgumentException("Role is required");
         }
+
+        // ── Block creation of another SUPER_ADMIN via this endpoint ──
+        if ("SUPER_ADMIN".equalsIgnoreCase(dto.getAdminRole().trim())) {
+            throw new IllegalArgumentException(
+                    "SUPER_ADMIN cannot be created via this endpoint. Only one SUPER_ADMIN is allowed (created via bootstrap).");
+        }
+
         if (dto.getAdminPassword() == null || dto.getAdminPassword().trim().isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }
@@ -58,10 +66,11 @@ public class AdminServiceImpl implements AdminService {
                 .adminMobileNumber(dto.getAdminMobileNumber() != null ? dto.getAdminMobileNumber().trim() : null)
                 .adminAddress(dto.getAdminAddress() != null ? dto.getAdminAddress().trim() : null)
                 .adminRole(dto.getAdminRole().trim())
-                .adminPassword(passwordEncoder.encode(dto.getAdminPassword())) // ← in real app: encode this!
+                .adminPassword(passwordEncoder.encode(dto.getAdminPassword()))
                 .adminDepartment(dto.getAdminDepartment())
                 .adminIsActive(true)
                 .adminIsLocked(false)
+                .moduleAccess(dto.getModuleAccess() != null ? dto.getModuleAccess() : new ArrayList<>())
                 .build();
 
         AdminEntity saved = adminRepository.save(entity);
@@ -89,12 +98,10 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public AdminResponseDto updateAdmin(String adminId, AdminRequestDto dto) {
-        // For full update → usually require most/all fields
         logger.info("Full update requested for adminId: {}", adminId);
         AdminEntity entity = adminRepository.findByAdminId(adminId)
                 .orElseThrow(() -> new RuntimeException("Admin not found with id: " + adminId));
 
-        // You can decide which fields are allowed to be updated
         if (dto.getAdminFirstName() != null) entity.setAdminFirstName(dto.getAdminFirstName().trim());
         if (dto.getAdminLastName() != null) entity.setAdminLastName(dto.getAdminLastName().trim());
         if (dto.getAdminMobileNumber() != null) {
@@ -105,11 +112,25 @@ public class AdminServiceImpl implements AdminService {
             entity.setAdminMobileNumber(dto.getAdminMobileNumber().trim());
         }
         if (dto.getAdminAddress() != null) entity.setAdminAddress(dto.getAdminAddress().trim());
-        if (dto.getAdminRole() != null) entity.setAdminRole(dto.getAdminRole().trim());
+
+        if (dto.getAdminRole() != null) {
+            String newRole = dto.getAdminRole().trim();
+            if ("SUPER_ADMIN".equalsIgnoreCase(newRole) &&
+                    !"SUPER_ADMIN".equalsIgnoreCase(entity.getAdminRole())) {
+                throw new IllegalArgumentException(
+                        "Cannot promote an admin to SUPER_ADMIN via update. Only one SUPER_ADMIN is allowed.");
+            }
+            entity.setAdminRole(newRole);
+        }
 
         if (dto.getAdminPassword() != null) {
             entity.setAdminPassword(passwordEncoder.encode(dto.getAdminPassword()));
         }
+
+        if (dto.getModuleAccess() != null) {
+            entity.setModuleAccess(dto.getModuleAccess());
+        }
+
         AdminEntity saved = adminRepository.save(entity);
         logger.info("Admin fully updated: {}", adminId);
         return mapToResponseDto(saved);
@@ -118,7 +139,6 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public AdminResponseDto patchAdmin(String adminId, AdminRequestDto dto) {
-        // PATCH → only update provided (non-null) fields
         logger.info("Partial update (PATCH) requested for adminId: {}", adminId);
         AdminEntity entity = adminRepository.findByAdminId(adminId)
                 .orElseThrow(() -> new RuntimeException("Admin not found with id: " + adminId));
@@ -145,10 +165,18 @@ public class AdminServiceImpl implements AdminService {
             entity.setAdminAddress(dto.getAdminAddress().trim());
             changed = true;
         }
+
         if (dto.getAdminRole() != null) {
-            entity.setAdminRole(dto.getAdminRole().trim());
+            String newRole = dto.getAdminRole().trim();
+            if ("SUPER_ADMIN".equalsIgnoreCase(newRole) &&
+                    !"SUPER_ADMIN".equalsIgnoreCase(entity.getAdminRole())) {
+                throw new IllegalArgumentException(
+                        "Cannot promote an admin to SUPER_ADMIN via patch. Only one SUPER_ADMIN is allowed.");
+            }
+            entity.setAdminRole(newRole);
             changed = true;
         }
+
         if (dto.getAdminPassword() != null) {
             entity.setAdminPassword(passwordEncoder.encode(dto.getAdminPassword()));
         }
@@ -158,13 +186,36 @@ public class AdminServiceImpl implements AdminService {
             changed = true;
         }
 
+        if (dto.getModuleAccess() != null) {
+            entity.setModuleAccess(dto.getModuleAccess());
+            changed = true;
+        }
+
         if (!changed) {
             logger.info("No fields changed for PATCH on adminId: {}", adminId);
-            return mapToResponseDto(entity); // or throw exception — your choice
+            return mapToResponseDto(entity);
         }
 
         AdminEntity saved = adminRepository.save(entity);
         logger.info("Admin partially updated: {}", adminId);
+        return mapToResponseDto(saved);
+    }
+
+    // ── NEW: dedicated module-access update (used by settings.html toggle grid) ──
+    @Override
+    @Transactional
+    public AdminResponseDto updateModuleAccess(String adminId, List<String> moduleAccess) {
+        logger.info("Updating module access for adminId: {}", adminId);
+        AdminEntity entity = adminRepository.findByAdminId(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin not found with id: " + adminId));
+
+        if ("SUPER_ADMIN".equalsIgnoreCase(entity.getAdminRole())) {
+            throw new IllegalArgumentException("Cannot modify module access for SUPER_ADMIN — it always has full access.");
+        }
+
+        entity.setModuleAccess(moduleAccess != null ? moduleAccess : new ArrayList<>());
+        AdminEntity saved = adminRepository.save(entity);
+        logger.info("Module access updated for adminId: {}", adminId);
         return mapToResponseDto(saved);
     }
 
@@ -187,6 +238,7 @@ public class AdminServiceImpl implements AdminService {
                 .adminAddress(entity.getAdminAddress())
                 .adminRole(entity.getAdminRole())
                 .adminDepartment(entity.getAdminDepartment())
+                .moduleAccess(entity.getModuleAccess())
                 .build();
     }
 }

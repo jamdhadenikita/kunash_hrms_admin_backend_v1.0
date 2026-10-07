@@ -6,14 +6,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.TimeZone;
-
 @SpringBootApplication
 @EnableScheduling
 public class HrmsSystemApplication {
 
 	public static void main(String[] args) {
 
-		// Load .env file (if present)
+		// Load .env file
+
 		Dotenv dotenv = Dotenv.configure()
 				.directory("./") // Look in root folder
 				.ignoreIfMissing()    // Avoid errors if .env is missing (e.g., in production)
@@ -34,3 +34,5 @@ public class HrmsSystemApplication {
 	}
 
 }
+
+/// ////nikita

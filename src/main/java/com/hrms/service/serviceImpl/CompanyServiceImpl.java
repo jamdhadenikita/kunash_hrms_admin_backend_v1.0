@@ -61,14 +61,15 @@ public class CompanyServiceImpl implements CompanyService {
         company.setDescription(request.getDescription());
 
         // JSON fields — always overwrite (null or empty array should also clear the field)
-        setJsonField(company, "workingDays",    request.getWorkingDays());
-        setJsonField(company, "breakTimings",   request.getBreakTimings());
-        setJsonField(company, "holidays",       request.getHolidays());
-        setJsonField(company, "departments",    request.getDepartments());
-        setJsonField(company, "designations",   request.getDesignations());
-        setJsonField(company, "socialMedia",    request.getSocialMedia());
-        setJsonField(company, "contactPersons", request.getContactPersons());
-        setJsonField(company, "bankDetails",    request.getBankDetails());
+        setJsonField(company, "workingDays",     request.getWorkingDays());
+        setJsonField(company, "breakTimings",    request.getBreakTimings());
+        setJsonField(company, "saturdayPolicy",  request.getSaturdayPolicy());
+        setJsonField(company, "holidays",        request.getHolidays());
+        setJsonField(company, "departments",     request.getDepartments());
+        setJsonField(company, "designations",    request.getDesignations());
+        setJsonField(company, "socialMedia",     request.getSocialMedia());
+        setJsonField(company, "contactPersons",  request.getContactPersons());
+        setJsonField(company, "bankDetails",     request.getBankDetails());
 
         CompanyEntity saved = companyRepository.save(company);
         return convertToResponse(saved);
@@ -78,17 +79,17 @@ public class CompanyServiceImpl implements CompanyService {
     private void setJsonField(CompanyEntity e, String fieldName, String json) {
         // Always set — even if empty — so a user can clear all departments / designations
         switch (fieldName) {
-            case "workingDays"    -> e.setWorkingDaysJson(json);
-            case "breakTimings"   -> e.setBreakTimingsJson(json);
-            case "holidays"       -> e.setHolidaysJson(json);
-            case "departments"    -> e.setDepartmentsJson(json);
-            case "designations"   -> e.setDesignationsJson(json);
-            case "socialMedia"    -> e.setSocialMediaJson(json);
-            case "contactPersons" -> e.setContactPersonsJson(json);
-            case "bankDetails"    -> e.setBankDetailsJson(json);
+            case "workingDays"     -> e.setWorkingDaysJson(json);
+            case "breakTimings"    -> e.setBreakTimingsJson(json);
+            case "saturdayPolicy"  -> e.setSaturdayPolicyJson(json);
+            case "holidays"        -> e.setHolidaysJson(json);
+            case "departments"     -> e.setDepartmentsJson(json);
+            case "designations"    -> e.setDesignationsJson(json);
+            case "socialMedia"     -> e.setSocialMediaJson(json);
+            case "contactPersons"  -> e.setContactPersonsJson(json);
+            case "bankDetails"     -> e.setBankDetailsJson(json);
         }
     }
-
     // ─────────────────────────────────────────────────────────────────────────
     // READ
     // ─────────────────────────────────────────────────────────────────────────
@@ -307,6 +308,7 @@ public class CompanyServiceImpl implements CompanyService {
 
         dto.setWorkingDaysJson(c.getWorkingDaysJson());
         dto.setBreakTimingsJson(c.getBreakTimingsJson());
+        dto.setSaturdayPolicyJson(c.getSaturdayPolicyJson());
         dto.setHolidaysJson(c.getHolidaysJson());
         dto.setDepartmentsJson(c.getDepartmentsJson());
         dto.setDesignationsJson(c.getDesignationsJson());

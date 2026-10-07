@@ -1,5 +1,6 @@
 package com.hrms.security;
 
+import com.hrms.entity.AdminEntity;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -97,14 +99,22 @@ public class AuthController {
             logger.info("Login successful for mobile: {}", mobile);
 
             AdminDetails adminDetails = (AdminDetails) userDetails;
+            AdminEntity admin = adminDetails.getAdminEntity();
+
+            List<String> modules = admin.getModuleAccess() != null
+                    ? admin.getModuleAccess()
+                    : List.of();
+
+            logger.info("Admin {} has module access: {}", admin.getAdminId(), modules);
 
             return ResponseEntity.ok(Map.of(
-                    "message",   "Login successful",
-                    "mobile",    mobile,
-                    "adminId",   adminDetails.getAdminId()   != null ? adminDetails.getAdminId()   : "",
-                    "role",      adminDetails.getRole()      != null ? adminDetails.getRole()      : "",
-                    "firstName", adminDetails.getAdminEntity().getAdminFirstName(),
-                    "lastName",  adminDetails.getAdminEntity().getAdminLastName()
+                    "message",      "Login successful",
+                    "mobile",       mobile,
+                    "adminId",      adminDetails.getAdminId() != null ? adminDetails.getAdminId() : "",
+                    "role",         adminDetails.getRole()    != null ? adminDetails.getRole()    : "",
+                    "firstName",    admin.getAdminFirstName() != null ? admin.getAdminFirstName() : "",
+                    "lastName",     admin.getAdminLastName()  != null ? admin.getAdminLastName()  : "",
+                    "moduleAccess", modules
             ));
 
         } catch (BadCredentialsException e) {

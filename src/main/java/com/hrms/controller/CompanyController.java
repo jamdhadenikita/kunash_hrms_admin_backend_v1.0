@@ -28,7 +28,6 @@ public class CompanyController {
     private final CompanyService companyService;
     private final ObjectMapper objectMapper;
 
-
     public CompanyController(CompanyRepository companyRepository, CompanyService companyService, ObjectMapper objectMapper) {
         this.companyRepository = companyRepository;
         this.companyService = companyService;
@@ -76,6 +75,9 @@ public class CompanyController {
             }
             if (request.getBreakTimings() != null && !request.getBreakTimings().isEmpty()) {
                 company.setBreakTimingsJson(request.getBreakTimings());
+            }
+            if (request.getSaturdayPolicy() != null && !request.getSaturdayPolicy().isEmpty()) {
+                company.setSaturdayPolicyJson(request.getSaturdayPolicy());
             }
             if (request.getHolidays() != null && !request.getHolidays().isEmpty()) {
                 company.setHolidaysJson(request.getHolidays());
@@ -319,6 +321,7 @@ public class CompanyController {
 
         response.setWorkingDaysJson(company.getWorkingDaysJson());
         response.setBreakTimingsJson(company.getBreakTimingsJson());
+        response.setSaturdayPolicyJson(company.getSaturdayPolicyJson());
         response.setHolidaysJson(company.getHolidaysJson());
         response.setDepartmentsJson(company.getDepartmentsJson());
         response.setDesignationsJson(company.getDesignationsJson());

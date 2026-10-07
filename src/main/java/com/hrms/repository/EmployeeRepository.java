@@ -98,6 +98,20 @@ List<Object[]> countActiveByDepartment();
 List<EmployeeEntity> findRecentHires(@Param("since") LocalDate since);
 
 
-    @Query(value = "SELECT employee_id FROM employees WHERE employee_id REGEXP '^EMPSIEC[0-9]+$' ORDER BY CAST(SUBSTRING(employee_id, 8) AS UNSIGNED) DESC LIMIT 1", nativeQuery = true)
+//    @Query(value = "SELECT employee_id FROM employees WHERE employee_id REGEXP '^EMPSIEC[0-9]+$' ORDER BY CAST(SUBSTRING(employee_id, 8) AS UNSIGNED) DESC LIMIT 1", nativeQuery = true)
+//    Optional<String> findTopEmployeeIdBySeries();
+
+    @Query(value = "SELECT employee_id FROM employees WHERE employee_id REGEXP '^EMPKMS[0-9]+$' ORDER BY CAST(SUBSTRING(employee_id, 7) AS UNSIGNED) DESC LIMIT 1", nativeQuery = true)
     Optional<String> findTopEmployeeIdBySeries();
+
+   /// ////////////////////////
+
+    @Query("SELECT e FROM EmployeeEntity e WHERE e.dateOfBirth IS NOT NULL " +
+            "AND MONTH(e.dateOfBirth) = MONTH(CURRENT_DATE) " +
+            "AND DAY(e.dateOfBirth) = DAY(CURRENT_DATE) " +
+            "AND e.status = 'ACTIVE'")
+    List<EmployeeEntity> findTodaysBirthdays();
+
+    @Query("SELECT e FROM EmployeeEntity e WHERE e.dateOfBirth IS NOT NULL AND e.status = 'ACTIVE'")
+    List<EmployeeEntity> findAllActiveWithDateOfBirth();
 }

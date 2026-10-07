@@ -462,4 +462,27 @@ public class EmployeeController {
         }
         return ResponseEntity.ok(response);
     }
+
+    // Today's birthdays — called right after login to show the popup
+    @GetMapping("/todays-birthdays")
+    public ResponseEntity<Map<String, Object>> getTodaysBirthdays() {
+        List<BirthdayDTO> birthdays = employeeService.getTodaysBirthdays();
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("count", birthdays.size());
+        response.put("data", birthdays);
+        return ResponseEntity.ok(response);
+    }
+
+    // All birthdays for a year — used by Calendar Management page
+    @GetMapping("/birthdays")
+    public ResponseEntity<Map<String, Object>> getBirthdaysForYear(
+            @RequestParam(required = false) Integer year) {
+        int resolvedYear = (year != null) ? year : java.time.Year.now().getValue();
+        List<BirthdayDTO> birthdays = employeeService.getBirthdaysForYear(resolvedYear);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", birthdays);
+        return ResponseEntity.ok(response);
+    }
 }

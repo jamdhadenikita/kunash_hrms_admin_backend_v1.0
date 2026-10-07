@@ -65,4 +65,9 @@ public interface EmployeeService {
      */
     BulkEmployeeResponse processBulkUpload(MultipartFile file);
 
+  ///////////////////////////////
+    List<BirthdayDTO> getTodaysBirthdays();
+    
+    List<BirthdayDTO> getBirthdaysForYear(int year);
+
 }

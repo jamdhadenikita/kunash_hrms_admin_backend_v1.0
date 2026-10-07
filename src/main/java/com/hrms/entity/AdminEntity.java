@@ -3,6 +3,9 @@ package com.hrms.entity;
 import jakarta.persistence.*;
 import lombok.Builder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "admin_table")
 @Builder
@@ -47,10 +50,18 @@ public class AdminEntity {
     @Column(name = "admin_is_locked", nullable = false)
     private Boolean adminIsLocked = false;
 
-    public AdminEntity(){}
+    @Builder.Default
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "admin_module_access", joinColumns = @JoinColumn(name = "admin_table_id"))
+    @Column(name = "module_key")
+    private List<String> moduleAccess = new ArrayList<>();
 
+    public AdminEntity() {}
 
-    public AdminEntity(Long id, String adminId, String adminFirstName, String adminLastName, String adminMobileNumber, String adminAddress, String adminEmail, String adminRole, String adminPassword, String adminDepartment, Boolean adminIsActive, Boolean adminIsLocked) {
+    public AdminEntity(Long id, String adminId, String adminFirstName, String adminLastName,
+                       String adminMobileNumber, String adminAddress, String adminEmail,
+                       String adminRole, String adminPassword, String adminDepartment,
+                       Boolean adminIsActive, Boolean adminIsLocked, List<String> moduleAccess) {
         Id = id;
         this.adminId = adminId;
         this.adminFirstName = adminFirstName;
@@ -63,101 +74,45 @@ public class AdminEntity {
         this.adminDepartment = adminDepartment;
         this.adminIsActive = adminIsActive;
         this.adminIsLocked = adminIsLocked;
+        this.moduleAccess = moduleAccess != null ? moduleAccess : new ArrayList<>();
     }
 
-    public Long getId() {
-        return Id;
-    }
+    public Long getId() { return Id; }
+    public void setId(Long id) { Id = id; }
 
-    public void setId(Long id) {
-        Id = id;
-    }
+    public String getAdminId() { return adminId; }
+    public void setAdminId(String adminId) { this.adminId = adminId; }
 
-    public String getAdminId() {
-        return adminId;
-    }
+    public String getAdminFirstName() { return adminFirstName; }
+    public void setAdminFirstName(String adminFirstName) { this.adminFirstName = adminFirstName; }
 
-    public void setAdminId(String adminId) {
-        this.adminId = adminId;
-    }
+    public String getAdminLastName() { return adminLastName; }
+    public void setAdminLastName(String adminLastName) { this.adminLastName = adminLastName; }
 
-    public String getAdminFirstName() {
-        return adminFirstName;
-    }
+    public String getAdminMobileNumber() { return adminMobileNumber; }
+    public void setAdminMobileNumber(String adminMobileNumber) { this.adminMobileNumber = adminMobileNumber; }
 
-    public void setAdminFirstName(String adminFirstName) {
-        this.adminFirstName = adminFirstName;
-    }
+    public String getAdminAddress() { return adminAddress; }
+    public void setAdminAddress(String adminAddress) { this.adminAddress = adminAddress; }
 
-    public String getAdminLastName() {
-        return adminLastName;
-    }
+    public String getAdminRole() { return adminRole; }
+    public void setAdminRole(String adminRole) { this.adminRole = adminRole; }
 
-    public void setAdminLastName(String adminLastName) {
-        this.adminLastName = adminLastName;
-    }
+    public String getAdminPassword() { return adminPassword; }
+    public void setAdminPassword(String adminPassword) { this.adminPassword = adminPassword; }
 
-    public String getAdminMobileNumber() {
-        return adminMobileNumber;
-    }
+    public String getAdminEmail() { return adminEmail; }
+    public void setAdminEmail(String adminEmail) { this.adminEmail = adminEmail; }
 
-    public void setAdminMobileNumber(String adminMobileNumber) {
-        this.adminMobileNumber = adminMobileNumber;
-    }
+    public String getAdminDepartment() { return adminDepartment; }
+    public void setAdminDepartment(String adminDepartment) { this.adminDepartment = adminDepartment; }
 
-    public String getAdminAddress() {
-        return adminAddress;
-    }
+    public Boolean getAdminIsActive() { return adminIsActive; }
+    public void setAdminIsActive(Boolean adminIsActive) { this.adminIsActive = adminIsActive; }
 
-    public void setAdminAddress(String adminAddress) {
-        this.adminAddress = adminAddress;
-    }
+    public Boolean getAdminIsLocked() { return adminIsLocked; }
+    public void setAdminIsLocked(Boolean adminIsLocked) { this.adminIsLocked = adminIsLocked; }
 
-    public String getAdminRole() {
-        return adminRole;
-    }
-
-    public void setAdminRole(String adminRole) {
-        this.adminRole = adminRole;
-    }
-
-    public String getAdminPassword() {
-        return adminPassword;
-    }
-
-    public void setAdminPassword(String adminPassword) {
-        this.adminPassword = adminPassword;
-    }
-
-    public String getAdminEmail() {
-        return adminEmail;
-    }
-
-    public void setAdminEmail(String adminEmail) {
-        this.adminEmail = adminEmail;
-    }
-
-    public String getAdminDepartment() {
-        return adminDepartment;
-    }
-
-    public void setAdminDepartment(String adminDepartment) {
-        this.adminDepartment = adminDepartment;
-    }
-
-    public Boolean getAdminIsActive() {
-        return adminIsActive;
-    }
-
-    public void setAdminIsActive(Boolean adminIsActive) {
-        this.adminIsActive = adminIsActive;
-    }
-
-    public Boolean getAdminIsLocked() {
-        return adminIsLocked;
-    }
-
-    public void setAdminIsLocked(Boolean adminIsLocked) {
-        this.adminIsLocked = adminIsLocked;
-    }
+    public List<String> getModuleAccess() { return moduleAccess; }
+    public void setModuleAccess(List<String> moduleAccess) { this.moduleAccess = moduleAccess; }
 }

@@ -34,6 +34,8 @@ public class CompanyResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private String saturdayPolicyJson;
+
     public CompanyResponseDTO() {
     }
 
@@ -148,4 +150,7 @@ public class CompanyResponseDTO {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getSaturdayPolicyJson() { return saturdayPolicyJson; }
+    public void setSaturdayPolicyJson(String saturdayPolicyJson) { this.saturdayPolicyJson = saturdayPolicyJson; }
 }

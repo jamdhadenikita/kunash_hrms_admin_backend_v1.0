@@ -83,6 +83,9 @@ public class CompanyEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String saturdayPolicyJson;
+
     public CompanyEntity() {
     }
 
@@ -167,6 +170,9 @@ public class CompanyEntity {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getSaturdayPolicyJson() { return saturdayPolicyJson; }
+    public void setSaturdayPolicyJson(String saturdayPolicyJson) { this.saturdayPolicyJson = saturdayPolicyJson; }
 
     @PrePersist
     protected void onCreate() {

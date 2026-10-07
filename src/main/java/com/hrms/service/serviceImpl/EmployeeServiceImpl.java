@@ -103,7 +103,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(id -> Integer.parseInt(id.substring(7)) + 1)
                 .orElse(1);
 
-        String employeeId = String.format("EMPSIEC%02d", nextSeq);
+        String employeeId = String.format("EMPKMS%02d", nextSeq);
 
         EmployeeEntity employee = new EmployeeEntity();
 
@@ -612,7 +612,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(id -> Integer.parseInt(id.substring(7)) + 1)
                 .orElse(1);
 
-        String employeeId = String.format("EMPSIEC%02d", nextSeq);
+        String employeeId = String.format("EMPKMS%02d", nextSeq);
 
         // Generate random password (8 chars: letters + numbers + special char)
         String rawPassword = generateRandomPassword(8);
@@ -963,7 +963,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 // Handles gaps in existing IDs (e.g. EMP0003 deleted → skip it).
                 String generatedEmployeeId;
                 do {
-                    generatedEmployeeId = String.format("EMPSIEC%02d", employeeIdCounter++);
+                    generatedEmployeeId = String.format("EMPKMS%02d", employeeIdCounter++);
                 } while (existingEmployeeIds.contains(generatedEmployeeId));
                 existingEmployeeIds.add(generatedEmployeeId); // reserve within this batch
 
@@ -1005,6 +1005,45 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         return response;
+    }
+
+    @Override
+    public List<BirthdayDTO> getTodaysBirthdays() {
+        LocalDate today = LocalDate.now();
+        return employeeRepository.findTodaysBirthdays().stream()
+                .map(e -> toBirthdayDTO(e, today))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<BirthdayDTO> getBirthdaysForYear(int year) {
+        List<BirthdayDTO> result = employeeRepository.findAllActiveWithDateOfBirth().stream()
+                .map(e -> {
+                    LocalDate dob = e.getDateOfBirth();
+                    LocalDate occursOn;
+                    try {
+                        occursOn = LocalDate.of(year, dob.getMonthValue(), dob.getDayOfMonth());
+                    } catch (Exception ex) {
+                        occursOn = LocalDate.of(year, 2, 28); // Feb 29 fallback on non-leap years
+                    }
+                    return toBirthdayDTO(e, occursOn);
+                })
+                .collect(Collectors.toList());
+        result.sort(Comparator.comparing(BirthdayDTO::getOccursOn));
+        return result;
+    }
+
+    private BirthdayDTO toBirthdayDTO(EmployeeEntity e, LocalDate occursOn) {
+        int age = occursOn.getYear() - e.getDateOfBirth().getYear();
+        String photoUrl = (e.getProfilePhotoImage() != null && e.getProfilePhotoImage().length > 0)
+                ? generateImageUrl(e.getEmployeeId(), "profile") : null;
+
+        BirthdayDTO dto = new BirthdayDTO(
+                e.getEmployeeId(),
+                e.getFullName() != null ? e.getFullName() : (e.getFirstName() + " " + e.getLastName()),
+                e.getDepartment(), e.getDesignation(), photoUrl, e.getDateOfBirth(), age);
+        dto.setOccursOn(occursOn);
+        return dto;
     }
 
     // ─── Header Detection ─────────────────────────────────────────────────────

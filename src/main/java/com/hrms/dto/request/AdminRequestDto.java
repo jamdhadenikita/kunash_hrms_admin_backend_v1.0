@@ -2,6 +2,8 @@ package com.hrms.dto.request;
 
 import lombok.Builder;
 
+import java.util.List;
+
 @Builder
 public class AdminRequestDto {
 
@@ -12,11 +14,15 @@ public class AdminRequestDto {
     private String adminRole;           // required (ADMIN, SUPER_ADMIN, etc.)
     private String adminPassword;
     private String adminDepartment;
+    private List<String> moduleAccess;
+
 
     public AdminRequestDto(){}
 
 
-    public AdminRequestDto(String adminFirstName, String adminLastName, String adminMobileNumber, String adminAddress, String adminRole, String adminPassword, String adminDepartment) {
+    public AdminRequestDto(String adminFirstName, String adminLastName, String adminMobileNumber,
+                           String adminAddress, String adminRole, String adminPassword,
+                           String adminDepartment, List<String> moduleAccess) {
         this.adminFirstName = adminFirstName;
         this.adminLastName = adminLastName;
         this.adminMobileNumber = adminMobileNumber;
@@ -24,6 +30,7 @@ public class AdminRequestDto {
         this.adminRole = adminRole;
         this.adminPassword = adminPassword;
         this.adminDepartment = adminDepartment;
+        this.moduleAccess = moduleAccess;
     }
 
     public String getAdminFirstName() {
@@ -81,4 +88,13 @@ public class AdminRequestDto {
     public void setAdminDepartment(String adminDepartment) {
         this.adminDepartment = adminDepartment;
     }
+
+    public List<String> getModuleAccess() {
+        return moduleAccess;
+    }
+
+    public void setModuleAccess(List<String> moduleAccess) {
+        this.moduleAccess = moduleAccess;
+    }
+
 }

@@ -1,4 +1,5 @@
 package com.hrms.service.serviceImpl;
+
 import com.hrms.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -21,7 +22,16 @@ public class EmailServiceImpl implements EmailService {
     private String fromEmail;
 
     // ── Logo path inside src/main/resources ──────────────────────────────────
-    private static final String LOGO_PATH = "static/Images/logo-siec.jpeg";
+    // Kunash Media logo — dark background wala PNG
+    private static final String LOGO_PATH = "static/Images/kunash-logo.png";
+
+    // ── Brand Colors (Kunash Media theme) ────────────────────────────────────
+    private static final String BRAND_ORANGE      = "#E87B35";  // Kunash K icon + "KUNASH" text
+    private static final String BRAND_ORANGE_DARK = "#C4661F";  // hover / darker shade
+    private static final String BRAND_GRAY        = "#4A4A4A";  // "MEDIA" text
+    private static final String BRAND_DARK        = "#1a1a1a";  // header background
+    private static final String BRAND_LIGHT_BG    = "#FFF6EE";  // very light orange tint
+    private static final String BRAND_BORDER      = "#F5DFC8";  // subtle orange border
 
     public EmailServiceImpl(JavaMailSender mailSender) {
         this.mailSender = mailSender;
@@ -42,7 +52,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject(subject);
             helper.setText(buildOtpEmailTemplate(otp), true);   // true = HTML
 
-            // Attach SIEC logo as inline CID image
+            // Attach Kunash Media logo as inline CID image
             addLogoIfExists(helper);
 
             mailSender.send(mimeMessage);
@@ -60,8 +70,8 @@ public class EmailServiceImpl implements EmailService {
         try {
             ClassPathResource logoResource = new ClassPathResource(LOGO_PATH);
             if (logoResource.exists() && logoResource.isReadable()) {
-                helper.addInline("siec-logo", logoResource);   // CID = "siec-logo"
-                logger.info("SIEC logo attached successfully from: {}", LOGO_PATH);
+                helper.addInline("kunash-logo", logoResource);   // CID = "kunash-logo"
+                logger.info("Kunash Media logo attached successfully from: {}", LOGO_PATH);
             } else {
                 logger.warn("Logo not found at '{}' — email will be sent without logo.", LOGO_PATH);
             }
@@ -70,7 +80,7 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    // ── HTML Email Template ───────────────────────────────────────────────────
+    // ── HTML Email Template — OTP ────────────────────────────────────────────
 
     private String buildOtpEmailTemplate(String otp) {
         return "<!DOCTYPE html>" +
@@ -78,55 +88,57 @@ public class EmailServiceImpl implements EmailService {
                 "<head>" +
                 "<meta charset='UTF-8'>" +
                 "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-                "<title>Password Reset OTP – SIEC HRMS</title>" +
+                "<title>Password Reset OTP – Kunash Media HRMS</title>" +
                 "<style>" +
                 "  body { margin:0; padding:0; font-family:'Segoe UI',Arial,sans-serif;" +
-                "         background-color:#f0f4f8; }" +
+                "         background-color:#f4f4f4; }" +
                 "  .wrapper { max-width:600px; margin:40px auto; background:#ffffff;" +
                 "             border-radius:12px; overflow:hidden;" +
                 "             box-shadow:0 4px 20px rgba(0,0,0,0.10); }" +
-                "  .header { background:#ffffff; text-align:center;" +
-                "             padding:30px 30px 22px;" +
-                "             border-bottom:3px solid #4caf50; }" +
-                "  .header img { max-height:80px; max-width:260px; object-fit:contain; }" +
-                "  .header .fallback { font-size:22px; font-weight:700; color:#1a6b3c; display:none; }" +
+                "  .header { background:" + BRAND_DARK + "; text-align:center;" +
+                "             padding:32px 30px 24px;" +
+                "             border-bottom:4px solid " + BRAND_ORANGE + "; }" +
+                "  .header img { max-height:70px; max-width:280px; object-fit:contain; }" +
+                "  .header .fallback { font-size:22px; font-weight:800; color:" + BRAND_ORANGE + ";" +
+                "                     letter-spacing:3px; display:none; }" +
                 "  .body { padding:38px 40px 28px; color:#333333; }" +
                 "  .body p { font-size:15px; line-height:1.75; margin:0 0 16px; }" +
                 "  .otp-box { text-align:center; margin:28px 0; }" +
                 "  .otp-code { display:inline-block; font-size:38px; font-weight:800;" +
-                "              color:#1a6b3c; background:#f0faf2;" +
-                "              border:3px solid #4caf50;" +
+                "              color:" + BRAND_ORANGE_DARK + "; background:" + BRAND_LIGHT_BG + ";" +
+                "              border:3px solid " + BRAND_ORANGE + ";" +
                 "              border-radius:10px; padding:16px 44px;" +
                 "              letter-spacing:14px;" +
                 "              font-family:'Courier New',monospace; }" +
                 "  .hint { color:#888; font-size:13px; margin-top:10px; }" +
-                "  .notice { background:#fff8e1; border-left:4px solid #f59e0b;" +
+                "  .notice { background:#FFF8E1; border-left:4px solid " + BRAND_ORANGE + ";" +
                 "            padding:14px 18px; border-radius:6px; margin:22px 0; }" +
                 "  .notice ul { margin:6px 0 0 0; padding-left:18px;" +
                 "               font-size:14px; color:#555; line-height:1.9; }" +
                 "  .footer { background:#f8fafc; text-align:center;" +
                 "            padding:20px; font-size:12px; color:#999;" +
                 "            border-top:1px solid #e5e7eb; }" +
+                "  .footer .brand { color:" + BRAND_ORANGE + "; font-weight:600; }" +
                 "</style>" +
                 "</head>" +
                 "<body>" +
                 "<div class='wrapper'>" +
 
-                // ── HEADER: white bg + SIEC logo via CID ──────────────────────
+                // ── HEADER: dark bg + Kunash Media logo via CID ─────────────
                 "  <div class='header'>" +
-                "    <img src='cid:siec-logo' alt='SIEC Logo'" +
+                "    <img src='cid:kunash-logo' alt='Kunash Media'" +
                 "         onerror=\"this.style.display='none';" +
                 "                  document.querySelector('.fallback').style.display='block';\" />" +
-                "    <div class='fallback'>SIEC HRMS</div>" +
+                "    <div class='fallback'>KUNASH MEDIA</div>" +
                 "  </div>" +
 
-                // ── BODY ──────────────────────────────────────────────────────
+                // ── BODY ─────────────────────────────────────────────────────
                 "  <div class='body'>" +
                 "    <p>Hello,</p>" +
-                "    <p>We received a request to reset your <strong>SIEC Employee</strong> portal password." +
+                "    <p>We received a request to reset your <strong>Kunash Media HRMS</strong> portal password." +
                 "       Please use the OTP below to proceed.</p>" +
                 "    <p>If you did not request this, please ignore this email or" +
-                "       contact HR immediately.</p>" +
+                "       contact your HR administrator immediately.</p>" +
 
                 "    <div class='otp-box'>" +
                 "      <div class='otp-code'>" + otp + "</div>" +
@@ -138,19 +150,18 @@ public class EmailServiceImpl implements EmailService {
                 "      <ul>" +
                 "        <li>This OTP is valid for <strong>5 minutes</strong> only.</li>" +
                 "        <li>Do <strong>not</strong> share this code with anyone.</li>" +
-                "        <li>If you did not request a password reset, contact HR immediately.</li>" +
+                "        <li>If you did not request a password reset, contact your HR admin immediately.</li>" +
                 "      </ul>" +
                 "    </div>" +
 
-                "    <p>Regards,<br><strong>SIEC Support Team</strong><br>" +
+                "    <p>Regards,<br><strong>Kunash Media Support Team</strong><br>" +
                 "    <span style='color:#888;font-size:13px;'>" +
-                "    Sustainable Integrated Environment Consultant</span></p>" +
+                "    Human Resource Management System</span></p>" +
                 "  </div>" +
 
-                // ── FOOTER ────────────────────────────────────────────────────
+                // ── FOOTER ───────────────────────────────────────────────────
                 "  <div class='footer'>" +
-                "    <p>&copy; 2026 SIEC – Sustainable Integrated Environment Consultant." +
-                "       All rights reserved.</p>" +
+                "    <p>&copy; 2026 <span class='brand'>KUNASH MEDIA</span>. All rights reserved.</p>" +
                 "    <p>This is an automated email — please do not reply.</p>" +
                 "  </div>" +
 
@@ -159,6 +170,7 @@ public class EmailServiceImpl implements EmailService {
                 "</html>";
     }
 
+    // ── Send Welcome Credentials Email ───────────────────────────────────────
 
     @Override
     public void sendEmployeeCredentials(String toEmail, String employeeId, String password) {
@@ -168,7 +180,7 @@ public class EmailServiceImpl implements EmailService {
 
             helper.setFrom(fromEmail);
             helper.setTo(toEmail);
-            helper.setSubject("Welcome to SIEC Employee Portal - Your Login Credentials");
+            helper.setSubject("Welcome to Kunash Media HRMS - Your Login Credentials");
 
             helper.setText(buildWelcomeCredentialsTemplate(employeeId, password), true); // HTML
 
@@ -189,37 +201,38 @@ public class EmailServiceImpl implements EmailService {
                 "<head>" +
                 "<meta charset='UTF-8'>" +
                 "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-                "<title>Welcome to SIEC Employee Portal</title>" +
+                "<title>Welcome to Kunash Media HRMS</title>" +
                 "<style>" +
-                "  body { margin:0; padding:0; font-family:'Segoe UI',Arial,sans-serif; background-color:#f0f4f8; }" +
+                "  body { margin:0; padding:0; font-family:'Segoe UI',Arial,sans-serif; background-color:#f4f4f4; }" +
                 "  .wrapper { max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.10); }" +
-                "  .header { background:#ffffff; text-align:center; padding:30px 30px 22px; border-bottom:3px solid #4caf50; }" +
-                "  .header img { max-height:80px; max-width:260px; object-fit:contain; }" +
-                "  .header .fallback { font-size:22px; font-weight:700; color:#1a6b3c; display:none; }" +
+                "  .header { background:" + BRAND_DARK + "; text-align:center; padding:32px 30px 24px; border-bottom:4px solid " + BRAND_ORANGE + "; }" +
+                "  .header img { max-height:70px; max-width:280px; object-fit:contain; }" +
+                "  .header .fallback { font-size:22px; font-weight:800; color:" + BRAND_ORANGE + "; letter-spacing:3px; display:none; }" +
                 "  .body { padding:38px 40px 28px; color:#333333; }" +
                 "  .body p { font-size:15px; line-height:1.75; margin:0 0 16px; }" +
-                "  .credential-box { background:#f8fafc; border:2px solid #4caf50; border-radius:10px; padding:20px; margin:25px 0; text-align:center; }" +
+                "  .credential-box { background:" + BRAND_LIGHT_BG + "; border:2px solid " + BRAND_ORANGE + "; border-radius:10px; padding:20px; margin:25px 0; text-align:center; }" +
                 "  .label { font-size:14px; color:#555; margin-bottom:5px; }" +
-                "  .value { font-size:18px; font-weight:700; color:#1a6b3c; letter-spacing:1px; }" +
-                "  .portal-btn { display:inline-block; background:#4caf50; color:#ffffff; text-decoration:none; " +
+                "  .value { font-size:18px; font-weight:700; color:" + BRAND_ORANGE_DARK + "; letter-spacing:1px; font-family:'Courier New',monospace; }" +
+                "  .portal-btn { display:inline-block; background:" + BRAND_ORANGE + "; color:#ffffff; text-decoration:none; " +
                 "               padding:14px 28px; border-radius:8px; font-weight:600; margin:20px 0; font-size:16px; }" +
-                "  .notice { background:#fff8e1; border-left:4px solid #f59e0b; padding:14px 18px; border-radius:6px; margin:22px 0; font-size:14px; }" +
+                "  .notice { background:#FFF8E1; border-left:4px solid " + BRAND_ORANGE + "; padding:14px 18px; border-radius:6px; margin:22px 0; font-size:14px; color:#555; }" +
                 "  .footer { background:#f8fafc; text-align:center; padding:20px; font-size:12px; color:#999; border-top:1px solid #e5e7eb; }" +
+                "  .footer .brand { color:" + BRAND_ORANGE + "; font-weight:600; }" +
                 "</style>" +
                 "</head>" +
                 "<body>" +
                 "<div class='wrapper'>" +
 
-                // Header with Logo
+                // Header with Kunash Media Logo
                 "  <div class='header'>" +
-                "    <img src='cid:siec-logo' alt='SIEC Logo'" +
+                "    <img src='cid:kunash-logo' alt='Kunash Media'" +
                 "         onerror=\"this.style.display='none'; document.querySelector('.fallback').style.display='block';\" />" +
-                "    <div class='fallback'>SIEC HRMS</div>" +
+                "    <div class='fallback'>KUNASH MEDIA</div>" +
                 "  </div>" +
 
                 "  <div class='body'>" +
                 "    <p>Hello,</p>" +
-                "    <p>Welcome to the <strong>SIEC Employee Portal</strong>! Your account has been successfully created.</p>" +
+                "    <p>Welcome to the <strong>Kunash Media HRMS Employee Portal</strong>! Your account has been successfully created.</p>" +
 
                 "    <div class='credential-box'>" +
                 "      <div class='label'>Employee ID</div>" +
@@ -242,12 +255,13 @@ public class EmailServiceImpl implements EmailService {
                 "      <strong>Important:</strong> Keep your credentials secure. Do not share your password with anyone." +
                 "    </div>" +
 
-                "    <p>Regards,<br><strong>SIEC Support Team</strong><br>" +
-                "    <span style='color:#888;font-size:13px;'>Sustainable Integrated Environment Consultant</span></p>" +
+                "    <p>Regards,<br><strong>Kunash Media Support Team</strong><br>" +
+                "    <span style='color:#888;font-size:13px;'>" +
+                "    Human Resource Management System</span></p>" +
                 "  </div>" +
 
                 "  <div class='footer'>" +
-                "    <p>&copy; 2026 SIEC – Sustainable Integrated Environment Consultant. All rights reserved.</p>" +
+                "    <p>&copy; 2026 <span class='brand'>KUNASH MEDIA</span>. All rights reserved.</p>" +
                 "    <p>This is an automated email — please do not reply.</p>" +
                 "  </div>" +
 
@@ -256,4 +270,3 @@ public class EmailServiceImpl implements EmailService {
                 "</html>";
     }
 }
-

@@ -29,6 +29,7 @@ public class CompanyRequestDTO {
     private String socialMedia;
     private String contactPersons;
     private String bankDetails;
+    private String saturdayPolicy;
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -99,5 +100,8 @@ public class CompanyRequestDTO {
 
     public String getBankDetails() { return bankDetails; }
     public void setBankDetails(String bankDetails) { this.bankDetails = bankDetails; }
+
+    public String getSaturdayPolicy() { return saturdayPolicy; }
+    public void setSaturdayPolicy(String saturdayPolicy) { this.saturdayPolicy = saturdayPolicy; }
 }
 

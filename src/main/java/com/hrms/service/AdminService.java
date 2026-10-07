@@ -17,9 +17,7 @@ public interface AdminService {
 
     AdminResponseDto patchAdmin(String adminId, AdminRequestDto requestDto);
 
-    void deleteAdmin(String adminId);
+    AdminResponseDto updateModuleAccess(String adminId, List<String> moduleAccess);   // ← NEW
 
-    // Optional future methods:
-    // boolean existsByMobileNumber(String mobile);
-    // List<AdminResponseDto> findByRole(String role);
+    void deleteAdmin(String adminId);
 }

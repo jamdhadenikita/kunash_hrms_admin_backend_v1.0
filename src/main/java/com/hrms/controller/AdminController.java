@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +21,6 @@ import java.util.Map;
 public class AdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
-
     private final AdminService adminService;
     private final AdminRepository adminRepository;
     private final BcryptEncoderConfig passwordEncoder;
@@ -37,9 +35,8 @@ public class AdminController {
 
     // ────────────────────────────────────────────────
     //                  CREATE ADMIN
-    //  CHANGED: restricted to SUPER_ADMIN role only
     // ────────────────────────────────────────────────
-    @PreAuthorize("hasRole('SUPER_ADMIN')")      // only SUPER_ADMIN can create new admins
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/create-admin")
     public ResponseEntity<String> createAdmin(@RequestBody AdminRequestDto requestDto) {
         logger.info("POST /api/admin → Creating new admin: {}", requestDto.getAdminFirstName());
@@ -59,21 +56,15 @@ public class AdminController {
         }
     }
 
-
     // ─────────────────────────────────────────────────────────────
-    //  POST /api/admin/auth/bootstrap
-    //
-    //  Call this ONCE to seed the first SUPER_ADMIN.
-    //  After that it returns 409 forever — completely safe.
+    //  POST /api/admin/bootstrap
     // ─────────────────────────────────────────────────────────────
     @PostMapping("/bootstrap")
     public ResponseEntity<?> bootstrap(@RequestBody Map<String, String> request) {
 
         logger.warn("Bootstrap endpoint called — checking if SUPER_ADMIN already exists");
 
-        // ── Guard: if any SUPER_ADMIN exists, refuse immediately ──
-        boolean superAdminExists = adminRepository
-                .existsByAdminRole("SUPER_ADMIN");
+        boolean superAdminExists = adminRepository.existsByAdminRole("SUPER_ADMIN");
 
         if (superAdminExists) {
             logger.warn("Bootstrap blocked — SUPER_ADMIN already exists in DB");
@@ -82,13 +73,11 @@ public class AdminController {
             ));
         }
 
-        // ── Validate required fields ──
         String mobile   = request.get("mobile");
         String password = request.get("password");
         String firstName = request.getOrDefault("firstName", "Super");
         String lastName  = request.getOrDefault("lastName", "Admin");
         String uniqueAdminId = adminIdGenerator.generateUniqueAdminId();
-
 
         if (mobile == null || mobile.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "mobile is required"));
@@ -97,18 +86,16 @@ public class AdminController {
             return ResponseEntity.badRequest().body(Map.of("error", "password must be at least 6 characters"));
         }
 
-        // ── Check mobile not already taken ──
         if (adminRepository.findByAdminMobileNumber(mobile).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Mobile number already registered"));
         }
 
-        // ── Create the SUPER_ADMIN entity ──
         AdminEntity superAdmin = new AdminEntity();
         superAdmin.setAdminId(uniqueAdminId);
         superAdmin.setAdminFirstName(firstName);
         superAdmin.setAdminLastName(lastName);
         superAdmin.setAdminMobileNumber(mobile);
-        superAdmin.setAdminPassword(passwordEncoder.encode(password));  // BCrypt hashed
+        superAdmin.setAdminPassword(passwordEncoder.encode(password));
         superAdmin.setAdminRole("SUPER_ADMIN");
         superAdmin.setAdminIsActive(true);
         superAdmin.setAdminIsLocked(false);
@@ -131,7 +118,6 @@ public class AdminController {
     @GetMapping("/get-admin-by-adminId/{adminId}")
     public ResponseEntity<?> getAdmin(@PathVariable String adminId) {
         logger.info("GET /api/admin/{} → Fetching admin", adminId);
-
         try {
             AdminResponseDto admin = adminService.getAdminByAdminId(adminId);
             return ResponseEntity.ok(admin);
@@ -152,7 +138,6 @@ public class AdminController {
     @GetMapping("/get-all-admin")
     public ResponseEntity<?> getAllAdmins() {
         logger.info("GET /api/admin → Fetching all admins");
-
         try {
             List<AdminResponseDto> admins = adminService.getAllAdmins();
             if (admins.isEmpty()) {
@@ -175,7 +160,6 @@ public class AdminController {
             @RequestBody AdminRequestDto requestDto) {
 
         logger.info("PUT /api/admin/{} → Full update requested", adminId);
-
         try {
             AdminResponseDto updated = adminService.updateAdmin(adminId, requestDto);
             String message = "Admin updated successfully: " + adminId;
@@ -201,7 +185,6 @@ public class AdminController {
             @RequestBody AdminRequestDto requestDto) {
 
         logger.info("PATCH /api/admin/{} → Partial update requested", adminId);
-
         try {
             AdminResponseDto updated = adminService.patchAdmin(adminId, requestDto);
             String message = "Admin partially updated: " + adminId;
@@ -219,12 +202,43 @@ public class AdminController {
     }
 
     // ────────────────────────────────────────────────
+    //         NEW: UPDATE MODULE ACCESS (toggle grid)
+    // ────────────────────────────────────────────────
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PatchMapping("/update-admin-modules/{adminId}")
+    public ResponseEntity<?> updateAdminModules(
+            @PathVariable String adminId,
+            @RequestBody Map<String, List<String>> request) {
+
+        logger.info("PATCH /api/admin/update-admin-modules/{} → Module access update requested", adminId);
+        try {
+            List<String> moduleAccess = request.get("moduleAccess");
+            AdminResponseDto updated = adminService.updateModuleAccess(adminId, moduleAccess);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Module access updated successfully",
+                    "adminId", updated.getAdminId(),
+                    "moduleAccess", updated.getModuleAccess()
+            ));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Module access update rejected: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            logger.warn("Module access update failed - admin not found: {}", adminId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Admin not found with ID: " + adminId));
+        } catch (Exception e) {
+            logger.error("Error updating module access for {}", adminId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to update module access"));
+        }
+    }
+
+    // ────────────────────────────────────────────────
     //                  DELETE ADMIN
     // ────────────────────────────────────────────────
     @DeleteMapping("/delete-admin-by-adminId/{adminId}")
     public ResponseEntity<String> deleteAdmin(@PathVariable String adminId) {
         logger.info("DELETE /api/admin/{} → Deleting admin", adminId);
-
         try {
             adminService.deleteAdmin(adminId);
             String message = "Admin deleted successfully: " + adminId;
